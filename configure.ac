@@ -88,6 +88,16 @@ if test "x$js_lib_found" != xyes ; then
     AC_MSG_ERROR([no usable mozjs (spidermonkey) library found])
 fi
 
+# Debug mode
+
+AC_ARG_ENABLE([debug],
+    AS_HELP_STRING([--enable-debug], [Enable debugging mode]))
+
+AS_IF([test "x$enable_debug" = "xyes"], [
+     CFLAGS="$CFLAGS -DJS_DEBUG"
+])
+
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
