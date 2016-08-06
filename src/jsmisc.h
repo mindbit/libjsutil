@@ -19,6 +19,7 @@
 #define _JSMISC_H
 
 #include <stdarg.h>
+#include <jsapi.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,8 +51,16 @@ typedef void (*JSLogCallback)(int priority, const char *format,
 #endif
 
 void JS_LogImpl(int priority, const char *format, ...);
-
 void JS_LogSetCallback(JSLogCallback callback);
+
+/**
+ * Convert JSString value to C string (array of chars)
+ * @param cx	JavaScript context
+ * @param v	JSString value
+ *
+ * @return A pointer to the converted value on success, or NULL on failure
+ */
+char *JS_StringToCStr(JSContext *cx, jsval v);
 
 #ifdef __cplusplus
 }
