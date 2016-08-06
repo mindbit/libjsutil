@@ -46,8 +46,11 @@ typedef void (*JSLogCallback)(int priority, const char *format,
 	JS_LogImpl(priority, "[%s %s:%d] " format, __func__, __FILE__,	\
 			__LINE__, ##__VA_ARGS__)
 #else
-#define JS_Log(priority, format, ...)					\
-	JS_LogImpl(priority, "[%s] " format, __func__, ##__VA_ARGS__)
+#define JS_Log(priority, format, ...) do {				\
+	if (priority < JS_LOG_DEBUG)					\
+		JS_LogImpl(priority, "[%s] " format,			\
+				__func__, ##__VA_ARGS__);		\
+} while (0)
 #endif
 
 void JS_LogImpl(int priority, const char *format, ...);
