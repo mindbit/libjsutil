@@ -20,22 +20,26 @@
 
 #include "jsmisc.h"
 
-static void js_log_default_callback(int priority, const char *format,
+static void JS_LogDefaultCallback(int priority, const char *format,
 		va_list ap)
 {
 	fprintf(stderr, "[%d] ", priority);
 	vfprintf(stderr, format, ap);
 }
 
-static js_log_callback_t js_log_callback = js_log_default_callback;
+static JSLogCallback js_log_callback = JS_LogDefaultCallback;
 
-void __js_log(int priority, const char *format, va_list ap)
+void JS_LogImpl(int priority, const char *format, ...)
 {
+	va_list ap;
+
+	va_start(ap, format);
 	if (js_log_callback)
 		js_log_callback(priority, format, ap);
+	va_end(ap);
 }
 
-void js_log_set_callback(js_log_callback_t callback)
+void JS_LogSetCallback(JSLogCallback callback)
 {
 	js_log_callback = callback;
 }
