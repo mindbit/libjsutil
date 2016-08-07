@@ -41,7 +41,7 @@ extern "C" {
 typedef void (*JSLogCallback)(int priority, const char *format,
 		va_list ap);
 
-#ifdef JSMISC_DEBUG
+#ifdef JS_DEBUG
 #define JS_Log(priority, format, ...)					\
 	JS_LogImpl(priority, "[%s %s:%d] " format, __func__, __FILE__,	\
 			__LINE__, ##__VA_ARGS__)
