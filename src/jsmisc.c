@@ -17,9 +17,84 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <sys/time.h>
 
 #include "jsmisc.h"
+
+struct str {
+	char *buf;
+	size_t strlen;
+	size_t bufsize;
+};
+
+#define STR_CHUNK 4096
+#define STR_INIT {NULL, 0, 0}
+
+static int str_expand(struct str *str, size_t len)
+{
+	char *newbuf;
+	size_t newsize;
+
+	if (str->strlen + len <= str->bufsize)
+		return 0;
+
+	newsize = ((str->strlen + len + STR_CHUNK - 1) / STR_CHUNK) *
+		STR_CHUNK;
+	newbuf = realloc(str->buf, newsize);
+	if (!newbuf)
+		return -ENOMEM;
+
+	str->buf = newbuf;
+	str->bufsize = newsize;
+
+	return 0;
+}
+
+static int str_printf(struct str *str, const char *format, ...)
+{
+	char buf[1024];
+	va_list ap;
+	int len, ret;
+
+	va_start(ap, format);
+	len = vsnprintf(buf, sizeof(buf), format, ap);
+	va_end(ap);
+
+	if (len < 0 || len >= sizeof(buf))
+		return -EINVAL;
+
+	if ((ret = str_expand(str, len + 1)))
+		return ret;
+
+	memcpy(str->buf + str->strlen, buf, len);
+	str->strlen += len;
+	str->buf[str->strlen] = '\0';
+
+	return 0;
+}
+
+static int str_append_js_str(struct str *str, JSContext *cx, JSString *js_str)
+{
+	int ret;
+	size_t len = JS_GetStringEncodingLength(cx, js_str);
+
+	if (len < 0)
+		return -EINVAL;
+
+	if ((ret = str_expand(str, len + 1)))
+		return ret;
+
+	len = JS_EncodeStringToBuffer(js_str, str->buf + str->strlen,
+			str->bufsize - str->strlen);
+	if (len < 0)
+		return -EINVAL;
+
+	str->strlen += len;
+	str->buf[str->strlen] = '\0';
+	return 0;
+}
 
 static void JS_LogDefaultCallback(int priority, const char *format,
 		va_list ap)
@@ -134,10 +209,133 @@ static JSBool JS_gettimeofday(JSContext *cx, unsigned argc, jsval *vp)
 	return JS_TRUE;
 }
 
+static int JS_InspectRecursive(JSContext *cx, jsval v, struct str *str,
+		unsigned int indent, unsigned int *obj_id)
+{
+	JSString *js_str;
+	int ret = 0;
+	size_t len;
+
+	switch (JS_TypeOfValue(cx, v)) {
+	case JSTYPE_VOID:
+		ret = str_printf(str, "void");
+		break;
+	case JSTYPE_OBJECT:
+		if (JSVAL_IS_NULL(v)) {
+			ret = str_printf(str, "null");
+			break;
+		}
+		if (JS_IsArrayObject(cx, JSVAL_TO_OBJECT(v))) {
+			ret = str_printf(str, "Array");
+			// TODO include array length
+			// TODO iterate and recurse on array elements
+			break;
+		}
+		if ((ret = str_printf(str, "Object {")))
+			break;
+		// TODO iterate and recurse on object properties
+		ret = str_printf(str, "\n}");
+		break;
+	case JSTYPE_FUNCTION:
+		ret = str_printf(str, "function");
+		break;
+	case JSTYPE_STRING:
+		len = JS_GetStringLength(JSVAL_TO_STRING(v));
+		if ((ret = str_printf(str, "String(%zu) \"", len)))
+			break;
+		if ((ret = str_append_js_str(str, cx, JSVAL_TO_STRING(v))))
+			break;
+		ret = str_printf(str, "\"");
+		break;
+	case JSTYPE_NUMBER:
+		js_str = JS_ValueToString(cx, v);
+		if ((ret = str_printf(str, "Number(")))
+			break;
+		if ((ret = str_append_js_str(str, cx, js_str)))
+			break;
+		ret = str_printf(str, ")");
+		break;
+	case JSTYPE_BOOLEAN:
+		js_str = JS_ValueToString(cx, v);
+		if ((ret = str_printf(str, "Boolean(")))
+			break;
+		if ((ret = str_append_js_str(str, cx, js_str)))
+			break;
+		ret = str_printf(str, ")");
+		break;
+	default:
+		ret = str_printf(str, "FIXME");
+		break;
+	}
+
+	return ret;
+}
+
+static int JS_InspectRoot(JSContext *cx, unsigned argc, jsval *vp,
+		struct str *str)
+{
+	int ret = 0;
+	unsigned i;
+
+	for (i = 0; i < argc; i++) {
+		unsigned int obj_id = 0;
+		if ((ret = str_printf(str, "$%u = ", i)))
+			break;
+		if (JS_InspectRecursive(cx, JS_ARGV(cx, vp)[i], str, 1, &obj_id))
+			break;
+		if ((ret = str_printf(str, "\n")))
+			break;
+	}
+
+	return ret;
+}
+
+static JSBool JS_inspect(JSContext *cx, unsigned argc, jsval *vp)
+{
+	JSString *js_str;
+	struct str c_str = STR_INIT;
+	JSBool ret = JS_FALSE;
+
+	if (!argc) {
+		JS_SET_RVAL(cx, vp, JSVAL_NULL);
+		return JS_TRUE;
+	}
+
+	if (JS_InspectRoot(cx, argc, vp, &c_str))
+		goto out;
+
+	js_str = JS_NewStringCopyN(cx, c_str.buf, c_str.strlen);
+	if (!js_str)
+		goto out;
+
+	JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(js_str));
+	ret = JS_TRUE;
+
+out:
+	free(c_str.buf);
+	return ret;
+}
+
+static JSBool JS_dump(JSContext *cx, unsigned argc, jsval *vp)
+{
+	struct str c_str = STR_INIT;
+
+	if (!argc)
+		return JS_TRUE;
+
+	if (!JS_InspectRoot(cx, argc, vp, &c_str))
+		fputs(c_str.buf, stdout);
+
+	free(c_str.buf);
+	return JS_TRUE;
+}
+
 JSBool JS_MiscInit(JSContext *cx, JSObject *global)
 {
 	JS_DefineFunction(cx, global, "print", JS_print, 0, 0);
 	JS_DefineFunction(cx, global, "println", JS_println, 0, 0);
 	JS_DefineFunction(cx, global, "gettimeofday", JS_gettimeofday, 0, 0);
+	JS_DefineFunction(cx, global, "inspect", JS_inspect, 0, 0);
+	JS_DefineFunction(cx, global, "dump", JS_dump, 0, 0);
 	return JS_TRUE;
 }
