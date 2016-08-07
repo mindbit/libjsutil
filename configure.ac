@@ -1,6 +1,6 @@
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([libjsmisc], [0.0.1], [support@mindbit.ro])
+AC_INIT([libjsmisc], [1.0], [support@mindbit.ro])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
@@ -9,6 +9,7 @@ AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADERS([jsmisc_config.h])
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_FILES([Makefile src/Makefile])
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -17,11 +18,11 @@ AM_PROG_CC_C_O
 LT_INIT
 AC_SUBST(MKDIR_P)
 
-
 CFLAGS="-Wall $CFLAGS"
 
-
+#
 # additional configure arguments
+#
 
 AC_ARG_WITH(js-include,
     AC_HELP_STRING([--with-js-include=DIR], [search for mozjs (spidermonkey) headers in DIR]),
@@ -37,8 +38,9 @@ AC_ARG_WITH(js-lib,
     ]
 )
 
-
+#
 # test for SpiderMonkey 17.0 (mozjs 17.0)
+#
 
 if test -z "$JS_INCLUDE" ; then
     JS_INCLUDE=" \
@@ -88,7 +90,9 @@ if test "x$js_lib_found" != xyes ; then
     AC_MSG_ERROR([no usable mozjs (spidermonkey) library found])
 fi
 
+#
 # Debug mode
+#
 
 AC_ARG_ENABLE([debug],
     AS_HELP_STRING([--enable-debug], [Enable debugging mode]))
@@ -97,9 +101,8 @@ AS_IF([test "x$enable_debug" = "xyes"], [
      CFLAGS="$CFLAGS -DJS_DEBUG"
 ])
 
+#
+# Output
+#
 
-AC_CONFIG_FILES([
-Makefile
-src/Makefile
-])
 AC_OUTPUT
