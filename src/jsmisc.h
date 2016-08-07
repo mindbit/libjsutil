@@ -66,6 +66,7 @@ void JS_LogSetCallback(JSLogCallback callback);
 char *JS_StringToCStr(JSContext *cx, jsval v);
 
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
+JSBool JS_MiscInit(JSContext *cx, JSObject *global);
 
 #ifdef __cplusplus
 }
