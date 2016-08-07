@@ -74,3 +74,23 @@ out_clean:
 out:
 	return NULL;
 }
+
+static void JS_MiscErrorReporter(JSContext *cx, const char *message,
+		JSErrorReport *report)
+{
+	int priority = (report->flags & JSREPORT_WARNING) ?
+		JS_LOG_WARNING : JS_LOG_ERR;
+	const char *filename = report->filename ?
+		report->filename : "noname";
+
+	JS_LogImpl(priority, "[%s:%u:%u] %s\n",
+			filename,
+			report->lineno,
+			report->column,
+			message);
+}
+
+JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx)
+{
+	return JS_SetErrorReporter(cx, JS_MiscErrorReporter);
+}
