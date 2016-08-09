@@ -23,6 +23,17 @@
 
 #include "jsmisc.h"
 
+static const char * const log_prio_map[] = {
+	[JS_LOG_EMERG]		= "emergency",
+	[JS_LOG_ALERT]		= "alert",
+	[JS_LOG_CRIT]		= "critical",
+	[JS_LOG_ERR]		= "error",
+	[JS_LOG_WARNING]	= "warning",
+	[JS_LOG_NOTICE]		= "notice",
+	[JS_LOG_INFO]		= "info",
+	[JS_LOG_DEBUG]		= "debug"
+};
+
 struct str {
 	char *buf;
 	size_t strlen;
@@ -99,7 +110,12 @@ static int str_append_js_str(struct str *str, JSContext *cx, JSString *js_str)
 static void JS_LogDefaultCallback(int priority, const char *format,
 		va_list ap)
 {
-	fprintf(stderr, "[%d] ", priority);
+	const char *prio_txt = "<default>";
+
+	if (priority >= JS_LOG_EMERG && priority <= JS_LOG_DEBUG)
+		prio_txt = log_prio_map[priority];
+
+	fprintf(stderr, "[%s] ", prio_txt);
 	vfprintf(stderr, format, ap);
 }
 
