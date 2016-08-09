@@ -8,14 +8,14 @@ Makefile.in
 /autom4te.cache
 /compile
 /config.guess
+/config.h
+/config.h.in
 /config.log
 /config.status
 /config.sub
 /configure
 /depcomp
 /install-sh
-/jsmisc_config.h
-/jsmisc_config.h.in
 /libtool
 /ltmain.sh
 /m4/*

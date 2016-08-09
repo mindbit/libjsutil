@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
+#include "config.h"
 #include "jsmisc.h"
 
 static const char * const log_prio_map[] = {
@@ -348,6 +349,7 @@ static JSBool JS_dump(JSContext *cx, unsigned argc, jsval *vp)
 
 JSBool JS_MiscInit(JSContext *cx, JSObject *global)
 {
+	JS_Log(JS_LOG_INFO, "%s\n", VERSION_STR);
 	JS_DefineFunction(cx, global, "print", JS_print, 0, 0);
 	JS_DefineFunction(cx, global, "println", JS_println, 0, 0);
 	JS_DefineFunction(cx, global, "gettimeofday", JS_gettimeofday, 0, 0);
