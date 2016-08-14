@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <sys/time.h>
 
@@ -83,6 +84,18 @@ static int str_printf(struct str *str, const char *format, ...)
 	memcpy(str->buf + str->strlen, buf, len);
 	str->strlen += len;
 	str->buf[str->strlen] = '\0';
+
+	return 0;
+}
+
+static int str_put_indent(struct str *str, int indent)
+{
+	int i, ret;
+	for (i = 0; i < indent; i++) {
+		ret = str_printf(str, "%s", "    ");
+		if (ret)
+			return ret;
+	}
 
 	return 0;
 }
@@ -230,8 +243,9 @@ static int JS_InspectRecursive(JSContext *cx, jsval v, struct str *str,
 		unsigned int indent, unsigned int *obj_id)
 {
 	JSString *js_str;
-	int ret = 0;
+	int ret = 0, i;
 	size_t len;
+	JSIdArray* ida;
 
 	switch (JS_TypeOfValue(cx, v)) {
 	case JSTYPE_VOID:
@@ -243,15 +257,50 @@ static int JS_InspectRecursive(JSContext *cx, jsval v, struct str *str,
 			break;
 		}
 		if (JS_IsArrayObject(cx, JSVAL_TO_OBJECT(v))) {
-			ret = str_printf(str, "Array");
-			// TODO include array length
-			// TODO iterate and recurse on array elements
+			uint32_t len, idx;
+			jsval ev;
+			if (!JS_GetArrayLength(cx, JSVAL_TO_OBJECT(v), &len))
+				break;
+			str_printf(str, "Array(%"PRIu32"): [", len);
+			for (idx = 0; idx < len; idx++) {
+				if (!JS_GetElement(cx, JSVAL_TO_OBJECT(v), idx, &ev))
+					continue;
+				str_printf(str, "\n");
+				str_put_indent(str, indent + 1);
+				str_printf(str, "[%"PRIu32"]: ", idx);
+				JS_InspectRecursive(cx, ev, str, indent + 1, obj_id);
+			}
+			str_printf(str, "\n");
+			str_put_indent(str, indent);
+			ret = str_printf(str, "]");
 			break;
 		}
 		if ((ret = str_printf(str, "Object {")))
 			break;
-		// TODO iterate and recurse on object properties
-		ret = str_printf(str, "\n}");
+		ida = JS_Enumerate(cx, JSVAL_TO_OBJECT(v));
+		if (ida) {
+			for (i = 0; i < JS_IdArrayLength(cx, ida); i++) {
+				jsval pv;
+				char *pn;
+
+				if (!JS_IdToValue(cx, JS_IdArrayGet(cx, ida, i), &pv))
+					continue;
+				if (JS_TypeOfValue(cx, pv) != JSTYPE_STRING)
+					continue;
+
+				pn = JS_EncodeString(cx, JS_ValueToString(cx, pv));
+				str_printf(str, "\n");
+				str_put_indent(str, indent + 1);
+				str_printf(str, "%s: ", pn);
+				if (JS_GetProperty(cx, JSVAL_TO_OBJECT(v), pn, &pv))
+					JS_InspectRecursive(cx, pv, str, indent + 1, obj_id);
+				JS_free(cx, pn);
+			}
+			JS_DestroyIdArray(cx, ida);
+		}
+		str_printf(str, "\n");
+		str_put_indent(str, indent);
+		ret = str_printf(str, "}");
 		break;
 	case JSTYPE_FUNCTION:
 		ret = str_printf(str, "function");
@@ -298,7 +347,7 @@ static int JS_InspectRoot(JSContext *cx, unsigned argc, jsval *vp,
 		unsigned int obj_id = 0;
 		if ((ret = str_printf(str, "$%u = ", i)))
 			break;
-		if (JS_InspectRecursive(cx, JS_ARGV(cx, vp)[i], str, 1, &obj_id))
+		if (JS_InspectRecursive(cx, JS_ARGV(cx, vp)[i], str, 0, &obj_id))
 			break;
 		if ((ret = str_printf(str, "\n")))
 			break;
