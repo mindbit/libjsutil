@@ -150,35 +150,14 @@ void JS_LogSetCallback(JSLogCallback callback)
 	js_log_callback = callback;
 }
 
-char *JS_StringToCStr(JSContext *cx, jsval v)
+char *JS_EncodeStringValue(JSContext *cx, jsval v)
 {
 	JSString *value = JS_ValueToString(cx, v);
 
-	if (value == NULL) {
-		JS_Log(JS_LOG_ERR, "Failed to convert the value to JSString\n");
-		goto out;
-	}
+	if (value == NULL)
+		return NULL;
 
-	if (JS_AddStringRoot(cx, &value) == JS_FALSE) {
-		JS_Log(JS_LOG_ERR, "Failed to root the string value\n");
-		goto out;
-	}
-
-	char *value_str = JS_EncodeString(cx, value);
-	if (value_str == NULL) {
-		JS_Log(JS_LOG_ERR, "Failed to encode the string value\n");
-		goto out_clean;
-	}
-
-	//FIXME not sure is this is safe
-	JS_RemoveStringRoot(cx, &value);
-
-	return value_str;
-
-out_clean:
-	JS_RemoveStringRoot(cx, &value);
-out:
-	return NULL;
+	return JS_EncodeString(cx, value);
 }
 
 static void JS_MiscErrorReporter(JSContext *cx, const char *message,

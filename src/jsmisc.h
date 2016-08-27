@@ -57,13 +57,18 @@ void JS_LogImpl(int priority, const char *format, ...);
 void JS_LogSetCallback(JSLogCallback callback);
 
 /**
- * Convert JSString value to C string (array of chars)
+ * @brief jsval shorthand for JS_EncodeString
+ *
+ * The function takes a jsval which then attempts to convert to a
+ * JSString using JS_ValueToString(). Similarly to JS_EncodeString(),
+ * the returned value must be freed with JS_free().
+ *
  * @param cx	JavaScript context
- * @param v	JSString value
+ * @param v	value to be encoded
  *
  * @return A pointer to the converted value on success, or NULL on failure
  */
-char *JS_StringToCStr(JSContext *cx, jsval v);
+char *JS_EncodeStringValue(JSContext *cx, jsval v);
 
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
 JSBool JS_MiscInit(JSContext *cx, JSObject *global);
