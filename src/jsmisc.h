@@ -70,6 +70,14 @@ void JS_LogSetCallback(JSLogCallback callback);
  */
 char *JS_EncodeStringValue(JSContext *cx, jsval v);
 
+/**
+ * @brief malloc shorthand for JS_EncodeString
+ *
+ * This function is identical to JS_EncodeString(), except that the
+ * returned value must be freed with free() instead of JS_free().
+ */
+char *JS_EncodeStringLoose(JSContext *cx, JSString *str);
+
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
 JSBool JS_MiscInit(JSContext *cx, JSObject *global);
 

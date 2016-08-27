@@ -160,6 +160,31 @@ char *JS_EncodeStringValue(JSContext *cx, jsval v)
 	return JS_EncodeString(cx, value);
 }
 
+char *JS_EncodeStringLoose(JSContext *cx, JSString *str)
+{
+	size_t len;
+	char *ret;
+
+	if (!str)
+		return NULL;
+
+	len = JS_GetStringEncodingLength(cx, str);
+	if (len == (size_t)-1)
+		return NULL;
+
+	ret = malloc(len + 1);
+	if (!ret)
+		return ret;
+
+	if (JS_EncodeStringToBuffer(str, ret, len) == (size_t)-1) {
+		free(ret);
+		return NULL;
+	}
+
+	ret[len] = '\0';
+	return ret;
+}
+
 static void JS_MiscErrorReporter(JSContext *cx, const char *message,
 		JSErrorReport *report)
 {
