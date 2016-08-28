@@ -78,6 +78,14 @@ char *JS_EncodeStringValue(JSContext *cx, jsval v);
  */
 char *JS_EncodeStringLoose(JSContext *cx, JSString *str);
 
+/**
+ * @brief Safely convert a JSString to jsval
+ */
+static inline jsval JS_StringToJsval(JSString *str)
+{
+	return str ? STRING_TO_JSVAL(str) : JSVAL_NULL;
+}
+
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
 JSBool JS_MiscInit(JSContext *cx, JSObject *global);
 
