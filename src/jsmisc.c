@@ -310,7 +310,11 @@ static int JS_InspectRecursive(JSContext *cx, jsval v, struct str *str,
 		ret = str_printf(str, "function");
 		break;
 	case JSTYPE_STRING:
-		len = JS_GetStringLength(JSVAL_TO_STRING(v));
+		if (!(js_str = JSVAL_TO_STRING(v))) {
+			ret = str_printf(str, "String(null)");
+			break;
+		}
+		len = JS_GetStringLength(js_str);
 		if ((ret = str_printf(str, "String(%zu) \"", len)))
 			break;
 		if ((ret = str_append_js_str(str, cx, JSVAL_TO_STRING(v))))
