@@ -185,6 +185,23 @@ char *JS_EncodeStringLoose(JSContext *cx, JSString *str)
 	return ret;
 }
 
+JSBool JS_AppendArrayElement(JSContext *cx, JSObject *obj, jsval value,
+		JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+{
+	uint32_t len;
+
+	if (!obj)
+		return JS_FALSE;
+
+	if (!JS_IsArrayObject(cx, obj))
+		return JS_FALSE;
+
+	if (!JS_GetArrayLength(cx, obj, &len))
+		return JS_FALSE;
+
+	return JS_DefineElement(cx, obj, len, value, getter, setter, attrs);
+}
+
 static void JS_MiscErrorReporter(JSContext *cx, const char *message,
 		JSErrorReport *report)
 {

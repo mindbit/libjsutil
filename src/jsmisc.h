@@ -86,6 +86,12 @@ static inline jsval JS_StringToJsval(JSString *str)
 	return str ? STRING_TO_JSVAL(str) : JSVAL_NULL;
 }
 
+/**
+ * @brief Append an element at the end of an array
+ */
+JSBool JS_AppendArrayElement(JSContext *cx, JSObject *obj, jsval value,
+		JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
+
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
 JSBool JS_MiscInit(JSContext *cx, JSObject *global);
 
