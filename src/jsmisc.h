@@ -93,7 +93,7 @@ JSBool JS_AppendArrayElement(JSContext *cx, JSObject *obj, jsval value,
 		JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
 
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
-JSBool JS_MiscInit(JSContext *cx, JSObject *global);
+JSBool JS_MiscInit(JSContext *cx, JSObject *obj);
 
 #ifdef __cplusplus
 }

@@ -421,13 +421,21 @@ static JSBool JS_dump(JSContext *cx, unsigned argc, jsval *vp)
 	return JS_TRUE;
 }
 
-JSBool JS_MiscInit(JSContext *cx, JSObject *global)
+static JSFunctionSpec jsmisc_functions[] = {
+	JS_FS("print", JS_print, 0, 0),
+	JS_FS("println", JS_println, 0, 0),
+	JS_FS("gettimeofday", JS_gettimeofday, 0, 0),
+	JS_FS("inspect", JS_inspect, 0, 0),
+	JS_FS("dump", JS_dump, 0, 0),
+	JS_FS_END
+};
+
+JSBool JS_MiscInit(JSContext *cx, JSObject *obj)
 {
 	JS_Log(JS_LOG_INFO, "%s\n", VERSION_STR);
-	JS_DefineFunction(cx, global, "print", JS_print, 0, 0);
-	JS_DefineFunction(cx, global, "println", JS_println, 0, 0);
-	JS_DefineFunction(cx, global, "gettimeofday", JS_gettimeofday, 0, 0);
-	JS_DefineFunction(cx, global, "inspect", JS_inspect, 0, 0);
-	JS_DefineFunction(cx, global, "dump", JS_dump, 0, 0);
-	return JS_TRUE;
+
+	if (!obj)
+		return JS_TRUE;
+
+	return JS_DefineFunctions(cx, obj, jsmisc_functions);
 }
