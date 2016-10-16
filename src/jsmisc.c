@@ -152,12 +152,17 @@ void JS_LogSetCallback(JSLogCallback callback)
 
 char *JS_EncodeStringValue(JSContext *cx, jsval v)
 {
-	JSString *value = JS_ValueToString(cx, v);
+	JSString *str;
 
-	if (value == NULL)
+	if (JSVAL_IS_NULL(v))
 		return NULL;
 
-	return JS_EncodeString(cx, value);
+	str = JS_ValueToString(cx, v);
+
+	if (str == NULL)
+		return NULL;
+
+	return JS_EncodeString(cx, str);
 }
 
 char *JS_EncodeStringLoose(JSContext *cx, JSString *str)
