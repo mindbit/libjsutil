@@ -444,3 +444,9 @@ JSBool JS_MiscInit(JSContext *cx, JSObject *obj)
 
 	return JS_DefineFunctions(cx, obj, jsmisc_functions);
 }
+
+const char *JS_MiscStrerror(int errnum)
+{
+	// FIXME thread-safe implementation
+	return strerror(errnum);
+}

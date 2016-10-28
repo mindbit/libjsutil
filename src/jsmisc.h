@@ -53,6 +53,9 @@ typedef void (*JSLogCallback)(int priority, const char *format,
 } while (0)
 #endif
 
+#define JS_ReportErrno(cx, errnum)					\
+	JS_ReportError(cx, "%s", JS_MiscStrerror(errnum))
+
 void JS_LogImpl(int priority, const char *format, ...);
 void JS_LogSetCallback(JSLogCallback callback);
 
@@ -94,6 +97,7 @@ JSBool JS_AppendArrayElement(JSContext *cx, JSObject *obj, jsval value,
 
 JSErrorReporter JS_MiscSetErrorReporter(JSContext *cx);
 JSBool JS_MiscInit(JSContext *cx, JSObject *obj);
+const char *JS_MiscStrerror(int errnum);
 
 #ifdef __cplusplus
 }
