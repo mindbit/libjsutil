@@ -59,6 +59,16 @@ typedef void (*JSLogCallback)(int priority, const char *format,
 #define JS_ReportErrno(cx, errnum)					\
 	JS_ReportError(cx, "%s", JS_MiscStrerror(errnum))
 
+#define JS_RetError(cx, format, ...) ({					\
+	JS_ReportError(cx, format, ##__VA_ARGS__);			\
+	JS_FALSE;							\
+})
+
+#define JS_RetErrno(cx, errnum) ({					\
+	JS_ReportErrno(cx, errnum);					\
+	JS_FALSE;							\
+})
+
 void JS_LogImpl(int priority, const char *format, ...);
 void JS_LogSetCallback(JSLogCallback callback);
 
