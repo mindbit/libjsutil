@@ -21,9 +21,12 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <jsdbgapi.h>
 
 #include "config.h"
 #include "jsmisc.h"
+
+#define __jsmisc_array_size(a) (sizeof(a) / sizeof((a)[0]))
 
 static const char * const log_prio_map[] = {
 	[JS_LOG_EMERG]		= "emergency",
@@ -426,23 +429,80 @@ static JSBool JS_dump(JSContext *cx, unsigned argc, jsval *vp)
 	return JS_TRUE;
 }
 
+static JSBool JS_log(JSContext *cx, unsigned argc, jsval *vp)
+{
+	int32_t prio;
+	char *msg;
+	JSScript *script;
+	unsigned int lineno = 0;
+	const char *filename = "<unknown>";
+
+	if (argc < 2)
+		return JS_RetErrno(cx, EINVAL);
+
+	if (!JS_ValueToInt32(cx, JS_ARGV(cx, vp)[0], &prio))
+		return JS_RetErrno(cx, EINVAL);
+
+	msg = JS_EncodeStringValue(cx, JS_ARGV(cx, vp)[1]);
+	if (!msg)
+		return JS_RetErrno(cx, EINVAL);
+
+	if (JS_DescribeScriptedCaller(cx, &script, &lineno))
+		filename = JS_GetScriptFilename(cx, script);
+
+	JS_LogImpl(prio, "[%s:%u] %s\n", filename, lineno, msg);
+	JS_free(cx, msg);
+
+	return JS_TRUE;
+}
+
 static JSFunctionSpec jsmisc_functions[] = {
 	JS_FS("print", JS_print, 0, 0),
 	JS_FS("println", JS_println, 0, 0),
 	JS_FS("gettimeofday", JS_gettimeofday, 0, 0),
 	JS_FS("inspect", JS_inspect, 0, 0),
 	JS_FS("dump", JS_dump, 0, 0),
+	JS_FS("log", JS_log, 2, 0),
 	JS_FS_END
+};
+
+static const struct {
+	const char *name;
+	int value;
+} jsmisc_props[] = {
+	{"LOG_EMERG",	JS_LOG_EMERG},
+	{"LOG_ALERT",	JS_LOG_ALERT},
+	{"LOG_CRIT",	JS_LOG_CRIT},
+	{"LOG_ERR",	JS_LOG_ERR},
+	{"LOG_WARNING",	JS_LOG_WARNING},
+	{"LOG_NOTICE",	JS_LOG_NOTICE},
+	{"LOG_INFO",	JS_LOG_INFO},
+	{"LOG_DEBUG",	JS_LOG_DEBUG},
 };
 
 JSBool JS_MiscInit(JSContext *cx, JSObject *obj)
 {
+	int i;
+
 	JS_Log(JS_LOG_INFO, "%s\n", VERSION_STR);
 
 	if (!obj)
 		return JS_TRUE;
 
-	return JS_DefineFunctions(cx, obj, jsmisc_functions);
+	if (!JS_DefineFunctions(cx, obj, jsmisc_functions))
+		return JS_FALSE;
+
+	for (i = 0; i < __jsmisc_array_size(jsmisc_props); i++) {
+		JSBool status = JS_DefineProperty(cx, obj,
+				jsmisc_props[i].name,
+				INT_TO_JSVAL(jsmisc_props[i].value),
+				NULL, NULL,
+				JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT);
+		if (!status)
+			return JS_FALSE;
+	}
+
+	return JS_TRUE;
 }
 
 const char *JS_MiscStrerror(int errnum)
